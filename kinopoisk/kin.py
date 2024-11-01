@@ -18,17 +18,18 @@ from time import sleep
 # from selenium.webdriver.common.action_chains import ActionChains
 # import undetected_chromedriver as uc
 
-
-ua = UserAgent()
-while True:
-    user_agent = ua.random
-    if "Safari" not in user_agent and "Mobile" not in user_agent:
-        break
-
-headers = {"user-agent": user_agent}
-
-print(headers)
 logging.basicConfig(level=logging.INFO)
+
+def uas():
+    ua = UserAgent()
+    while True:
+        user_agent = ua.random
+        if "Safari" not in user_agent and "Mobile" not in user_agent:
+            break
+
+    headers = {"user-agent": user_agent}
+    print(headers)
+    return headers
 
 
 def captcha(driver):
@@ -40,21 +41,20 @@ def captcha(driver):
                     )
             if button:
                 try:
-                    logging.info('Капча найдена')
                     button.click()
                     return True
                 except ElementNotInteractableException:
-                    logging.error('Кнопка капчи не доступна для клика.')
+                    logging.error('Проход капчи/провал')
                     return False  # Если кнопка не кликабельна
 
-        logging.info('Капча не найдена')
+        logging.info('Капча не найдена/успех')
         return True
         
     except NoSuchElementException:
-        logging.error('Капча не найдена.')
+        logging.info('Капча не найдена/успех')
         return True
     except TimeoutException:
-        logging.error('Не удалось найти кнопку капчи в отведенное время.')
+        logging.error('Не удалось найти кнопку капчи в отведенное время/провал')
         return False
     except Exception as e:
         logging.error(f'Произошла ошибка при обработке капчи: {e}')
@@ -71,7 +71,7 @@ def window_promo(driver):
             EC.element_to_be_clickable((By.CLASS_NAME, "styles_root__EjoL7"))
         )
             cross.click()
-            logging.info('Окно промо закрыто')
+            logging.info('Окно закрыто/успех')
             return True
         
     except (NoSuchElementException) as e:
@@ -86,7 +86,7 @@ def ran():
     sleep(delay)
 
 
-def log_in_mail(driver): 
+def log_in_mail(driver, mail_cl, passw_cl): 
     try:
         win = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, 'watch-online-button')))
         if win:
@@ -105,14 +105,13 @@ def log_in_mail(driver):
                     driver.find_element(By.CSS_SELECTOR, '[data-type="login"]').click()
                     ran()
                     mail = driver.find_element(By.NAME, 'login')
-                    mail.click()
 
                     current_value = mail.get_attribute('value')
                     for _ in range(len(current_value)):
                         sleep(1)
                         mail.send_keys(Keys.BACKSPACE)
 
-                    mail.send_keys(input('Введите LOGIN: ') + Keys.ENTER)
+                    mail.send_keys(mail_cl + Keys.ENTER)
 
                     try:
                         WebDriverWait(driver, 10).until(
@@ -120,15 +119,14 @@ def log_in_mail(driver):
                         )
                         # actions = ActionChains(driver)
                         # actions.double_click(element).perform()
-                        logging.info('Неверный логин или пароль, попробуйте снова.')
+                        logging.info('Неверный логин или пароль, попробуйте снова')
                         attempts += 1
 
                     except TimeoutException:
                         logging.info('Логин успешно принят. Переходим к вводу пароля.')
 
                         password = driver.find_element(By.ID, 'passp-field-passwd')
-                        password.send_keys(input('Введите пароль: '))
-                        password.send_keys(Keys.ENTER)
+                        password.send_keys(passw_cl + Keys.ENTER)
                         onecode = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, 'passp-field-phoneCode')))
                         onecode.send_keys(input('Введите код: ') + Keys.ENTER)
                         see_films = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, 'watch-online-button')))
@@ -170,9 +168,9 @@ def log_in_mail(driver):
 
 
 
-def selen(site):
+def selen(site, mail, passw):
     options = webdriver.ChromeOptions()
-    options.add_argument(f"user-agent={headers['user-agent']}")
+    options.add_argument(f"user-agent={uas['user-agent']}")
     driver = webdriver.Chrome(options=options)
     try:
         driver.maximize_window()
@@ -195,7 +193,7 @@ def selen(site):
         else:
             logging.info('не вышло окно промо')
             
-        lgml = log_in_mail(driver)
+        lgml = log_in_mail(driver, mail, passw)
         if lgml:
             logging.info('вход успешен')
         else:
@@ -208,4 +206,4 @@ def selen(site):
         driver.quit()
 
 
-selen('https://www.kinopoisk.ru/film/1037479/')
+# selen('https://www.kinopoisk.ru/film/1037479/')
